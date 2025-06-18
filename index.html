@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RPG試験</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        canvas {
+            display: block;
+            background-color: #000;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="gameCanvas"></canvas>
+    <script>
+        // HTML Canvas初期設定
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+
+        const tileSize = 20;  // 1タイルのサイズ
+        const mapWidth = 40;  // マップの幅
+        const mapHeight = 30; // マップの高さ
+
+        canvas.width = mapWidth * tileSize;
+        canvas.height = mapHeight * tileSize;
+
+        // ランダム背景生成
+        function generateMapColumn() {
+            const colors = ['green', 'white', 'red'];
+            const column = [];
+            for (let y = 0; y < mapHeight; y++) {
+                const randomColor = colors[Math.floor(Math.random() * colors.length)];
+                column.push(randomColor);
+            }
+            return column;
+        }
+
+        // 背景マップの描画
+        let map = Array.from({ length: mapWidth }, () => generateMapColumn());
+
+        function drawMap() {
+            for (let x = 0; x < mapWidth; x++) {
+                for (let y = 0; y < mapHeight; y++) {
+                    ctx.fillStyle = map[x][y];
+                    ctx.fillRect(x * tileSize, y * tileSize, tileSize, tileSize);
+                }
+            }
+        }
+
+        // プレイヤーキャラクターの描画
+        function drawPlayer() {
+            const playerX = Math.floor(mapWidth / 2);  // プレイヤーX座標 (常に中央)
+            const playerY = Math.floor(mapHeight / 2); // プレイヤーY座標 (常に中央)
+
+            ctx.fillStyle = 'blue';
+            ctx.fillRect(playerX * tileSize, playerY * tileSize, tileSize, tileSize);
+        }
+
+        // 背景の動き (WASDによって背景を動かす)
+        function moveBackground(dx, dy) {
+            if (dx === 1) { // 右に移動
+                map.shift();
+                map.push(generateMapColumn());
+            } else if (dx === -1) { // 左に移動
+                map.pop();
+                map.unshift(generateMapColumn());
+            } else if (dy === 1) { // 下に移動
+                for (let x = 0; x < mapWidth; x++) {
+                    map[x].shift();
+                    map[x].push(generateMapColumn()[0]);
+                }
+            } else if (dy === -1) { // 上に移動
+                for (let x = 0; x < mapWidth; x++) {
+                    map[x].pop();
+                    map[x].unshift(generateMapColumn()[0]);
+                }
+            }
+        }
+
+        // キーイベント処理
+        window.addEventListener('keydown', (e) => {
+            if (e.key === 'w' || e.key === 'ArrowUp') {
+                moveBackground(0, -1);
+            } else if (e.key === 'a' || e.key === 'ArrowLeft') {
+                moveBackground(-1, 0);
+            } else if (e.key === 's' || e.key === 'ArrowDown') {
+                moveBackground(0, 1);
+            } else if (e.key === 'd' || e.key === 'ArrowRight') {
+                moveBackground(1, 0);
+            }
+        });
+
+        // ゲームループ
+        function gameLoop() {
+            // 背景描画
+            drawMap();
+
+            // プレイヤー描画 (常に中央に位置)
+            drawPlayer();
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        gameLoop();
+
+// --- 弾丸の管理 ---
+const bullets = [];
+
+// 散弾を発射（3方向）
+function fireShotgun() {
+    const playerX = Math.floor(mapWidth / 2);
+    const playerY = Math.floor(mapHeight / 2);
+    const originX = playerX * tileSize + tileSize / 2;
+    const originY = playerY * tileSize + tileSize / 2;
+    const speed = 6;
+    const angles = [-0.3, 0, 0.3]; // 左・中央・右方向（ラジアン）
+
+    angles.forEach(angle => {
+        bullets.push({
+            x: originX,
+            y: originY,
+            dx: Math.cos(angle) * speed,
+            dy: Math.sin(angle) * speed,
+            life: 60
+        });
+    });
+}
+
+// 弾丸の更新と描画
+function updateBullets() {
+    for (let i = bullets.length - 1; i >= 0; i--) {
+        const b = bullets[i];
+        b.x += b.dx;
+        b.y += b.dy;
+        b.life--;
+
+        if (b.life <= 0 ||
+            b.x < 0 || b.y < 0 ||
+            b.x > canvas.width || b.y > canvas.height) {
+            bullets.splice(i, 1); // 削除
+            continue;
+        }
+
+        // 弾を描画
+        ctx.fillStyle = 'yellow';
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, 4, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+
+    </script>
+</body>
+</html>
+
